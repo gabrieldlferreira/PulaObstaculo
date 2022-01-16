@@ -1,0 +1,228 @@
+<!doctype html>
+    <html>
+        <head>
+            <meta charset="utf-8"/>
+            <title>Meu Joguinho</title>
+            <style>
+                /* Canvas é um elemento destinado a delimitar uma área para renderização dinâmica de gráficos*/
+                /* Configura onde o elemento canvas vai estar posicionado */
+                canvas{
+                    position: absolute;
+                    top: 0px;
+                    bottom: 0px;
+                    left: 0px;
+                    right: 0px;
+                    margin: auto;
+                }
+            </style>
+        </head>
+        <body>
+            <script>
+                //variaveis do jogo
+                var canvas, ctx, ALTURA, LARGURA, frames=0, maxPulos = 3, velocidade=6, estadoAtual,
+                // declaração da variavel chão, com todos seus atributos (*objeto)
+
+                estados = { //onde vai ser guardado os estados do jogo
+                    jogar: 0,
+                    jogando: 1,
+                    perdeu: 2
+                },
+
+                chao = {
+                    y: 550,
+                    altura: 50,
+                    cor: "#e8da78",
+
+                    desenha: function(){//metodo desenha
+                        ctx.fillStyle = this.cor; //Cor da Area que será pintada
+                        ctx.fillRect(0, this.y, LARGURA, this.altura); //Area que vai ser pintada
+                    }
+                },
+                // declaração da variavel bloco, com todos seus atributos (*objeto)
+                bloco ={
+                    x:50,
+                    y:0,
+                    altura:50,
+                    largura:50,
+                    cor:"#ff9239",
+                    gravidade: 1.6,
+                    velocidade: 0,
+                    forcaDoPulo: 23.6,
+                    qtsPulos: 0,
+                    score: 0,
+
+                    atualiza: function(){
+                        this.velocidade += this.gravidade; //aumentar a velocidade
+                        this.y += this.velocidade; //aumentar a velocidade
+
+                        if(this.y > chao.y - this.altura && estadoAtual != estados.perdeu){ //verificação para o bloco não passar do chão
+                            this.y = chao.y - this.altura;
+                            this.qtsPulos = 0; //zera os pulos
+                            this.velocidade = 0; //zera a velocidade para o bloco descer
+                        }
+                    },
+
+                    pula: function(){
+                        if(this.qtsPulos < maxPulos){ //verifica a quantidade de pulos
+                        this.velocidade =- this.forcaDoPulo
+                        this.qtsPulos++; //conta a quantidade do pulo
+                        }
+                    },
+
+                    reset: function(){
+                        this.velocidade = 0;
+                        this.y = 0;
+                        this.score = 0;
+
+                    },
+
+                    desenha: function(){//metodo desenha
+                        ctx.fillStyle = this.cor; //Cor da Area que será pintada
+                        ctx.fillRect(this.x, this.y, this.largura, this.altura); //Area que vai ser pintada
+                    }
+                },
+
+                obstaculos = {//criação do metodo obstáculos
+                    _obs: [], //criação do vetor obstáculo
+                    cores: ["#ffbc1c", "#ff1c1c", "#ff85e1", "#52a7ff", "#78ff5d"],//vetor de cores
+                    tempoInsere: 0,
+
+                    insere: function(){//metodo inserir elemento obstaculos
+                        this._obs.push({ //criação do bloco de obstaculo
+                            x: LARGURA,
+                            //largura: 30 + Math.floor(21 * Math.random()),//criação de uma largura aleatória
+                            largura: 50,
+                            altura: 30 + Math.floor(120 * Math.random()),//criação de uma altura aleatória
+                            cor: this.cores[Math.floor(5 * Math.random())],//sorteio da cor aleatoria
+                        });
+                        this.tempoInsere = 30 + Math.floor(21 * Math.random());
+                    },
+
+                    atualiza: function(){//função de atualizar o obstáculo
+                        if(this.tempoInsere == 0)
+                        this.insere();
+                        else
+                        this.tempoInsere --;
+
+                        for(var i=0, tam = this._obs.length; i < tam; i++){//andar o array de obstaculo
+                            var obs = this._obs[i];
+
+                            obs.x -= velocidade;
+
+                            if(bloco.x < obs.x + obs.largura && bloco.x + bloco.largura >= obs.x && bloco.y + bloco.altura >= chao.y - obs.altura){
+                                estadoAtual = estados.perdeu;
+
+                            }else if(obs.x == 0){
+                                bloco.score++;
+                                
+                            }else if(obs.x <= -obs.largura){
+                                this._obs.splice(i, 1);
+                                tam --;
+                                i--;
+                            }
+                    }
+                },
+
+                    limpa: function(){//metodo pra limpar o vetor
+                        this._obs = [];
+                    },
+
+                    desenha: function(){//função de desenhar o obstáculo no frame
+                        for(var i=0, tam = this._obs.length; i < tam; i++) { //seleciona para desenhar toda as posições do vetor
+                            var obs = this._obs[i];
+                            ctx.fillStyle = obs.cor; //cor qye vai ser pintado o obstaculo
+                            ctx.fillRect(obs.x, chao.y-obs.altura, obs.largura, obs.altura); //Area que vai ser desenhada
+                        }
+                    }
+            };
+
+                function clique(event){
+                    if (estadoAtual == estados.jogando){
+                        bloco.pula(); //chama metodo pula - para o bloco pular
+                    }else if (estadoAtual == estados.jogar){
+                        estadoAtual = estados.jogando;
+                    }else if (estadoAtual == estados.perdeu &&  bloco.y >= 2 * ALTURA){
+                        estadoAtual = estados.jogar;
+                        obstaculos.limpa();
+                        bloco.reset();
+                    }
+                }
+
+                function main(){
+                    ALTURA  = window.innerHeight; //Retorna a altura interior da área de conteúdo de uma janela
+                    LARGURA = window.innerWidth; //Retorna a largura interior da área de conteúdo de uma janela
+
+                    if(LARGURA >= 500){ //Faz as medidas terem um valor fixo para quando a largura da janela for maior de 500. Se for menor terá o valor real da janela
+                        LARGURA = 600;
+                        ALTURA = 600;
+                    }
+
+                    canvas = document.createElement("canvas"); //Cria o elemento Canvas
+                    canvas.width = LARGURA; //Dá a largura do elemento canvas o valor armazenado na variavel LARGURA
+                    canvas.height = ALTURA; //Dá a altura do elemento  canvas o valor armazenado na variavel ALTURA
+                    canvas.style.border = "1px solid #000"; //Dá ao elemento canvas um estilo, com uma borda solida de 1 pixel de cor preta
+
+                    ctx = canvas.getContext("2d") // retorna um contexto de desenho no canvas, no caso um desenho 2d
+                    document.body.appendChild(canvas); //Adicionardo a variavel canvas ao corpo no HTML
+                    document.addEventListener("mousedown", clique); //Evento que verifica se a pessoa clicou
+
+                
+                estadoAtual = estados.jogar;
+                roda(); //Vai execultar a função roda
+                }
+
+            function roda(){ //Função responsável por rodar o programa
+                atualiza(); //Vai execultar a função atualiza
+                desenha(); //Vai execultar a função desenha
+
+                window.requestAnimationFrame(roda); //fala para o navegador que deseja-se realizar uma animação e pede que o navegador chame a função roda para atualizar um quadro de animação antes da próxima repintura
+            }
+            function atualiza(){ //Função responsável por atualizar os frames
+                frames++;
+
+                bloco.atualiza(); //chama o metodo atualiza bloco
+
+                if (estadoAtual == estados.jogando){
+                obstaculos.atualiza(); //chama o metodo atualiza obstaculos
+                }
+            }
+            function desenha(){ //Função responsável por desenhar no frame
+                
+                ctx.fillStyle = "#80daff"; //Cor do Frame
+                ctx.fillRect(0, 0, LARGURA, ALTURA); //Area que vai ser pintada
+
+                ctx.fillStyle = "#fff";
+                ctx.font = "50px Arial";
+                ctx.fillText(bloco.score, 30, 68);
+
+                if(estadoAtual == estados.jogar){ //verificação pra saber de que cor vai ser pintado o estado do jogo
+                    ctx.fillStyle = "green"; //Cor do Frame
+                    ctx.fillRect(LARGURA / 2 - 50, ALTURA / 2 - 50, 100, 100); //Area que vai ser pintada
+                }else if (estadoAtual == estados.perdeu){ 
+                    ctx.fillStyle = "red";
+                    ctx.fillRect(LARGURA / 2 - 50, ALTURA / 2 - 50, 100, 100); 
+
+                    ctx.save(); //salva a pontuação
+                    ctx.translate(LARGURA/2, ALTURA/2); //transporta a pontuação para o meio da tela
+                    ctx.fillStyle = "#fff";
+                        if(bloco.score < 10){
+                            ctx.fillText(bloco.score, -13, 19);
+                        }else if(bloco.score >= 10 && bloco.score < 100){
+                            ctx.fillText(bloco.score, -26, 19);
+                        };
+                    ctx.restore(); //restaura a pontuação para o começo da tela novamente
+                }else if (estadoAtual == estados.jogando){
+                    obstaculos.desenha(); //desenha o obstaculo;
+                }
+
+                chao.desenha(); //desenha o chao;
+                bloco.desenha(); //desenha o bloco;
+                
+
+            }
+
+            main();
+
+            </script>
+        </body>
+    </html>
